@@ -1,0 +1,15 @@
+upstream application{
+  ip_hash;
+  server application:8000;
+}
+# portal
+server {
+  listen 80;
+  server_name localhost;
+  location / {
+        proxy_pass http://application/;
+    }
+ location Chat_App {
+        root /usr/src/chatapp/static/Chat_App;
+  }
+}

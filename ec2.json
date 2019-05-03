@@ -1,0 +1,25 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Resources": {
+    "-": {
+       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+       "Properties": {
+          "Listeners" : [ - ],
+          "Scheme" : "internal",
+          "SecurityGroups" : [ - ],
+          "Subnets" : [ - ],
+          "Tags": [
+                {
+                  "Key": "-",
+                  "Value": "-"
+                }
+          ]
+       }
+    }
+
+    },
+    "Outputs": {
+
+    }
+}

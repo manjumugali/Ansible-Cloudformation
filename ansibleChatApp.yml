@@ -1,0 +1,71 @@
+
+---
+- hosts: demo
+  remote_user: root
+  sudo: yes
+  tasks:
+   - name: Install base packages
+     apt: name={{ item }} state=installed
+     with_items:
+     - gcc
+     - python3-setuptools
+     - python3-virtualenv
+     - python3-dev
+     - git
+     - python3-pip
+     - nginx
+     tags:
+     - packages
+   - name: create virtualenv
+     command: virtualenv /home/ubuntu/venv -p python3 creates="/home/ubuntu/venv"
+   - name : clone app from github
+     git:
+       repo: "https://github.com/manjumugali/ChatApp-Django.git"
+       dest: /home/ubuntu/ChatApp-Django
+       version: master
+   - name: install requirements
+     pip:
+       requirements: /home/ubuntu/ChatApp-Django/requirements.txt
+       executable: /home/ubuntu/venv/bin/pip3
+
+   - name:
+     command : /home/ubuntu/venv/bin/pip3 install django bcrypt django-extensions
+
+   - name: chmod
+     command: sudo chmod 775 /home/ubuntu/ChatApp-Django/manage.py
+
+   - name: collect static files
+     django_manage:
+       command: collectstatic
+       virtualenv: /home/ubuntu/venv
+       app_path: /home/ubuntu/ChatApp-Django/
+
+   - name: gunicorn config file
+     copy:
+       src: /home/ubuntu/files/gunicorn.service
+       dest: /etc/systemd/system/
+
+   - name: nginx config file
+     copy:
+       src: /home/ubuntu/files/ChatApp-Django
+       dest: /etc/nginx/sites-available/
+
+   - name: nginx config file to sites-enabled
+     copy:
+       src: /home/ubuntu/files/ChatApp-Django
+       dest: /etc/nginx/sites-enabled/
+
+   - name: remove defualt file from nginx sites-enabled
+     file:
+      path: /etc/nginx/sites-enabled/default
+      state: absent
+   - name: reload systemd
+     command: systemctl daemon-reload
+   - name: restart gunicorn
+     command: systemctl restart gunicorn
+   - name: enable gunicorn
+     command: systemctl enable gunicorn
+   - name: start nginx
+     command: systemctl stop nginx
+   - name: restart nginx
+     command:system restart nginx

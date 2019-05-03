@@ -1,0 +1,260 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Chat App Deployment",
+    "Parameters": {
+      "vpccidr": {
+          "Description": "vpc cidr demo",
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+        },
+      "KeyName":{
+          "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+          "Type": "AWS::EC2::KeyPair::KeyName",
+          "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+          },
+      "InstanceType":{
+            "Description" : "WebServer EC2 instance type",
+            "Type" : "String",
+            "Default" : "t2.micro",
+            "AllowedValues": [
+                            "t1.micro",
+                            "t2.nano",
+                            "t2.micro"
+                          ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+          }
+    },
+    "Resources":
+    {
+        "MyVPCF": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "CidrBlock": { "Ref": "vpccidr" },
+            "Tags": [{ "Key": "Name", "Value":  "ChatVpc" }]
+          }
+        },
+        "publicsubnet1":{
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "MapPublicIpOnLaunch": "true",
+            "AvailabilityZone": "ap-south-1a",
+            "VpcId": { "Ref": "MyVPCF" },
+            "CidrBlock": "10.0.0.0/28",
+            "Tags":[{ "Key": "Name", "Value":  "Publicsubnet1" }]
+          }
+        },
+        "publicsubnet2":{
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+            "MapPublicIpOnLaunch": "true",
+            "AvailabilityZone":"ap-south-1b",
+            "VpcId": { "Ref": "MyVPCF" },
+            "CidrBlock": "10.0.0.16/28",
+            "Tags":[{ "Key": "Name", "Value":  "Publicsubnet2" }]
+                 }
+            },
+        "privatesubnet1": {
+              "Type": "AWS::EC2::Subnet",
+              "Properties": {
+              "AvailabilityZone":"ap-south-1a",
+              "VpcId": { "Ref": "MyVPCF" },
+              "CidrBlock": "10.0.0.32/28",
+              "Tags":[{ "Key": "Name", "Value":  "Privatesubnet1" }]
+              }
+            },
+
+        "privatesubnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+            "AvailabilityZone":"ap-south-1b",
+            "VpcId": { "Ref": "MyVPCF" },
+            "CidrBlock": "10.0.0.48/28",
+            "Tags":[{ "Key": "Name", "Value":  "Privatesub2" }]
+            }
+          },
+        "PublicRt": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+          "VpcId": { "Ref": "MyVPCF" },
+          "Tags":[{ "Key": "Name", "Value":  "PublicRT1" }]
+            }
+          },
+        "PrivateRt": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+          "VpcId": { "Ref": "MyVPCF" },
+          "Tags":[{ "Key": "Name", "Value":  "PrivateRT1" }]
+              }
+        },
+        "PublicrouteTableAssocName": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+          "SubnetId": { "Ref": "publicsubnet1" },
+          "RouteTableId": { "Ref": "PublicRt" }
+              }
+          },
+        "PublicrouteTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+            "SubnetId": { "Ref": "publicsubnet2" },
+            "RouteTableId": { "Ref": "PublicRt" }
+                }
+            },
+        "PrivaterouteTableAssocName": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+          "SubnetId": { "Ref": "privatesubnet1" },
+          "RouteTableId": { "Ref": "PrivateRt" }
+              }
+            },
+       "PrivaterouteTableAssocName": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+          "SubnetId": {"Ref": "privatesubnet2"},
+          "RouteTableId": { "Ref": "PrivateRt" }
+              }
+            },
+        "igwName": {
+          "Type": "AWS::EC2::InternetGateway",
+          "Properties": {
+            "Tags": [{ "Key": "Name", "Value":  "testig" }]
+            }
+          },
+        "AttachGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+            "VpcId": { "Ref": "MyVPCF" },
+            "InternetGatewayId": { "Ref": "igwName" }
+              }
+            },
+        "publicrouteName": {
+          "Type": "AWS::EC2::Route",
+          "Properties": {
+            "RouteTableId": { "Ref": "PublicRt" },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": { "Ref": "igwName" }
+            }
+          },
+          "NAT" : {
+              "DependsOn" : "MyVPCF",
+              "Type" : "AWS::EC2::NatGateway",
+              "Properties" : {
+              "AllocationId" : { "Fn::GetAtt" : ["EIP", "AllocationId"]},
+              "SubnetId" : { "Ref" : "publicsubnet2"},
+              "Tags" : [ {"Key" : "Name", "Value" : "TestNat" } ]
+                }
+              },
+          "EIP" : {
+            "Type" : "AWS::EC2::EIP",
+            "Properties" : {
+              "Domain" : "vpc"
+              }
+            },
+          "privateRoute" : {
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+            "RouteTableId" : { "Ref" : "PrivateRt" },
+            "DestinationCidrBlock" : "0.0.0.0/0",
+            "NatGatewayId" : { "Ref" : "NAT" }
+                }
+            },
+        "Publicserver": {
+                    "Type": "AWS::EC2::Instance",
+                    "Properties": {
+                    "KeyName": { "Ref": "KeyName" },
+                    "ImageId": "ami-062326519b92dbb47",
+                    "InstanceType": { "Ref": "InstanceType" },
+                    "SecurityGroupIds" : [{ "Ref": "publicsecGroupName" }],
+                    "SubnetId":{ "Ref":"publicsubnet2" },
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "public-server"
+                        }
+                    ]
+                    }
+          },
+        "PrivateServer": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                "KeyName": { "Ref": "KeyName" },
+                "ImageId": "ami-062326519b92dbb47",
+                "InstanceType": { "Ref": "InstanceType" },
+                "SecurityGroupIds" : [{ "Ref": "privatesecGroupName" }],
+                "SubnetId":{ "Ref": "privatesubnet2" },
+                "Tags": [{"Key": "Name","Value": "PrivateServer"}]
+                  }
+                },
+        "publicsecGroupName" :{
+                "Type" : "AWS::EC2::SecurityGroup",
+                "Properties" : {
+                "GroupDescription" : "TestDemo",
+                "SecurityGroupIngress" : [
+                  {
+                    "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22","CidrIp" : "0.0.0.0/0"
+                  },
+                  {
+                    "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80","CidrIp" : "0.0.0.0/0"
+                  }],
+                "VpcId":{ "Ref": "MyVPCF" },
+                "Tags":[{ "Key": "Name", "Value":  "publicSG" }]
+              }
+            },
+         "privatesecGroupName" :{
+                    "Type" : "AWS::EC2::SecurityGroup",
+                    "Properties" : {
+                    "GroupDescription" : "TestDemo",
+                    "SecurityGroupIngress" : [
+                      {
+                        "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22","CidrIp" : "0.0.0.0/0"
+                      },
+                      {
+                        "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80","CidrIp" : "0.0.0.0/0"
+                      }],
+                    "VpcId":{ "Ref": "MyVPCF" },
+                    "Tags":[{ "Key": "Name", "Value":  "privateSG" }]
+                  }
+             },
+          "LoadBalancer": {
+                "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+                "Properties": {
+                   "Instances":[{ "Ref": "Publicserver" },{ "Ref": "PrivateServer" }],
+                   "Subnets":[{ "Ref": "publicsubnet2" },{ "Ref": "publicsubnet1" }],
+                   "SecurityGroups":[{ "Ref": "publicsecGroupName" }],
+                   "Listeners" : [ {
+                     "LoadBalancerPort" : "80",
+                     "InstancePort" : "80",
+                     "Protocol" : "HTTP"
+                     } ],
+                   "HealthCheck" :{
+                     "Target":"HTTP:80/",
+                     "HealthyThreshold" : "3",
+                     "UnhealthyThreshold" : "5",
+                     "Interval" : "30",
+                     "Timeout" : "5"
+                   },
+                 "Tags":[{"Key": "Name", "Value": "TestLoad"}]
+                }
+             },
+          "secGroupName" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+              "GroupDescription" : "test",
+              "SecurityGroupIngress" : [{
+                "IpProtocol":"tcp","FromPort":"80","ToPort":"80","CidrIp":"0.0.0.0/0"}
+              ],
+              "VpcId" :{ "Ref": "MyVPCF" },
+              "Tags" :  [ { "Key": "Name", "Value":  "LBSG" }]
+            }
+          },
+          "s3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "AccessControl": "PublicRead",
+              "BucketName": "chatmanju",
+              "Tags": [{ "Key": "Name", "Value":  "ChatApp" }]
+            }
+          }
+     },
+    "Outputs": {}
+}

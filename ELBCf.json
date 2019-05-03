@@ -1,0 +1,30 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "dskjf",
+    "Parameters":{
+
+
+    },
+    "Resources": {
+      "Eloadbal": {
+         "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+         "Properties": {
+            "AvailabilityZone":"ap-south-1a",
+            "Listeners" : [{
+              "LoadBalancerPort" : "80",
+              "InstancePort" : "80",
+              "Protocol" : "HTTP"} ],
+            "Tags": [{ "Key": "Name", "Value":  "TestCFELB" }],
+
+            "HealthCheck" :{
+              "Target":"HTTP:80/",
+              "HealthyThreshold" : "3",
+              "UnhealthyThreshold" : "5",
+              "Interval" : "30",
+              "Timeout" : "5"
+              }
+          }
+        }
+    },
+    "Outputs": {}
+}

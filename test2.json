@@ -1,0 +1,34 @@
+"publicsubnet1":{
+  "Type": "AWS::EC2::Subnet",
+  "Properties": {
+    "AvailabilityZone": "ap-south-1a",
+    "VpcId": { "Ref": "MyVPCCF" },
+    "CidrBlock": "10.0.0.1/28"
+  }
+},
+
+"publicsubnet2":{
+    "Type": "AWS::EC2::Subnet",
+    "Properties": {
+    "AvailabilityZone":"ap-south-1b",
+    "VpcId": { "Ref": "MyVPCCF" },
+    "CidrBlock": "10.0.0.16/28"
+         }
+    },
+"privatesubnet1": {
+  "Type": "AWS::EC2::Subnet",
+  "Properties": {
+    "AvailabilityZone":"ap-south-1a",
+    "VpcId": { "Ref": "MyVPCF" },
+    "CidrBlock": "10.0.0.32/28"
+  }
+},
+
+"privatesubnet2": {
+"Type": "AWS::EC2::Subnet",
+"Properties": {
+"AvailabilityZone":"ap-south-1b",
+"VpcId": { "Ref": "MyVPCF" },
+"CidrBlock": "10.0.0.48/28"
+}
+},
